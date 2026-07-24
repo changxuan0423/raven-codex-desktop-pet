@@ -32,6 +32,10 @@ Walking:
 
 ![Walking](assets/walk-right.gif)
 
+Task complete:
+
+![Task complete](assets/task-complete.gif)
+
 Hover eye loop:
 
 ![Hover eye loop](assets/hover-eye-loop.gif)
