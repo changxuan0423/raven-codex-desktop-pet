@@ -36,6 +36,10 @@ Hover eye loop:
 
 ![Hover eye loop](assets/hover-eye-loop.gif)
 
+Approval needed:
+
+![Approval needed](assets/approval-needed.gif)
+
 Full spritesheet contact sheet:
 
 ![Contact sheet](assets/contact-sheet.png)
@@ -62,4 +66,3 @@ Status mappings:
 - Approval needed: ? face
 - Response output: > face
 - Hover/interaction: smooth eye-loop animation
-
