@@ -36,6 +36,10 @@ Task complete:
 
 ![Task complete](assets/task-complete.gif)
 
+Task failed or disconnected:
+
+![Task failed or disconnected](assets/task-failed-disconnected.gif)
+
 Hover eye loop:
 
 ![Hover eye loop](assets/hover-eye-loop.gif)
@@ -68,7 +72,7 @@ Raven was made from a user-provided pixel PNG and packaged as a Codex v2 desktop
 
 Status mappings:
 
-- Task failed: X face
+- Task failed or network disconnected: fallen X face
 - Task complete: smile face
 - Thinking/running task: # face
 - Approval needed: ? face
