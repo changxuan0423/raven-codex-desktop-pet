@@ -44,6 +44,10 @@ Approval needed:
 
 ![Approval needed](assets/approval-needed.gif)
 
+Thinking/running task:
+
+![Thinking running task](assets/thinking-running.gif)
+
 Full spritesheet contact sheet:
 
 ![Contact sheet](assets/contact-sheet.png)
