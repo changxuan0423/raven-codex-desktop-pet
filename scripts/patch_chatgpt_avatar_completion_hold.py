@@ -43,12 +43,13 @@ NEW_STATE_PREFIX = (
     "(0,X.useEffect)(()=>{let n=et.current;et.current=k.mascotState;"
     "if(!(k.mascotState===`review`||k.mascotState===`idle`&&(n===`running`||n===`review`)))return;"
     "Je(`waving`);let e=window.setTimeout(()=>{Je(null)},3e3);return()=>{window.clearTimeout(e)}},"
-    "[k.mascotState]);let Xe=u??(qe!=null&&k.mascotState===`idle`?qe:null);"
+    "[k.mascotState]);let Xe=qe!=null?qe:u;"
 )
 
 OLD_PROP = "style:l,transientState:u});return"
 NEW_PROP = "style:l,transientState:Xe});return"
-PATCH_MARKER = "let Xe=u??(qe!=null&&k.mascotState===`idle`?qe:null)"
+OLD_PATCH_MARKER = "let Xe=u??(qe!=null&&k.mascotState===`idle`?qe:null)"
+PATCH_MARKER = "let Xe=qe!=null?qe:u"
 RUNNING_TO_IDLE_MARKER = "k.mascotState===`idle`&&(n===`running`||n===`review`)"
 OLD_REVIEW_ONLY_SNIPPET = (
     "[qe,Je]=(0,X.useState)(null);"
@@ -61,7 +62,7 @@ NEW_RUNNING_TO_IDLE_SNIPPET = (
     "(0,X.useEffect)(()=>{let n=et.current;et.current=k.mascotState;"
     "if(!(k.mascotState===`review`||k.mascotState===`idle`&&(n===`running`||n===`review`)))return;"
     "Je(`waving`);let e=window.setTimeout(()=>{Je(null)},3e3);return()=>{window.clearTimeout(e)}},"
-    "[k.mascotState]);let Xe=u??(qe!=null&&k.mascotState===`idle`?qe:null);"
+    "[k.mascotState]);let Xe=qe!=null?qe:u;"
 )
 
 
@@ -127,7 +128,7 @@ def find_target_file(header: dict, blob: bytes, data_start: int) -> tuple[str, d
             text = blob[data_start + offset : data_start + offset + size].decode("utf-8")
         except UnicodeDecodeError:
             continue
-        if "function jn(" in text and (OLD_PROP in text or PATCH_MARKER in text):
+        if "function jn(" in text and (OLD_PROP in text or PATCH_MARKER in text or OLD_PATCH_MARKER in text):
             matches.append((path, entry))
     if len(matches) != 1:
         raise SystemExit(f"could not find unique avatar overlay target; matches={ [path for path, _ in matches] }")
@@ -138,6 +139,8 @@ def patch_js(source: bytes) -> bytes:
     text = source.decode("utf-8")
     if RUNNING_TO_IDLE_MARKER in text and PATCH_MARKER in text:
         return source
+    if RUNNING_TO_IDLE_MARKER in text and OLD_PATCH_MARKER in text:
+        return text.replace(OLD_PATCH_MARKER, PATCH_MARKER).encode("utf-8")
     if OLD_REVIEW_ONLY_SNIPPET in text:
         return text.replace(OLD_REVIEW_ONLY_SNIPPET, NEW_RUNNING_TO_IDLE_SNIPPET).encode("utf-8")
     if text.count(OLD_STATE_PREFIX) == 1:

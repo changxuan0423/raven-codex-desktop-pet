@@ -30,6 +30,8 @@ The Raven spritesheet includes a task-complete `waving` row, but some ChatGPT/Co
 
 For local desktop installs, `scripts/patch_chatgpt_avatar_completion_hold.py` can patch ChatGPT's `app.asar` so the renderer holds `waving` for about 3 seconds when the mascot state transitions from `running` or `review` back to `idle`.
 
+The patch gives completion feedback priority over Raven's movement/drag transient state, so autonomous walking does not hide the task-complete animation.
+
 ```sh
 python3 scripts/patch_chatgpt_avatar_completion_hold.py \
   /Applications/ChatGPT.app/Contents/Resources/app.asar \
