@@ -24,6 +24,26 @@ The installed files should look like this:
 ~/.codex/pets/raven/spritesheet.webp
 ```
 
+## Optional Completion Feedback Patch
+
+The Raven spritesheet includes a task-complete `waving` row, but some ChatGPT/Codex desktop builds return the active conversation from `running` directly to `idle` without emitting a normal `review` notification. In that case the pet package alone cannot keep the completion animation visible.
+
+For local desktop installs, `scripts/patch_chatgpt_avatar_completion_hold.py` can patch ChatGPT's `app.asar` so the renderer holds `waving` for about 3 seconds when the mascot state transitions from `running` or `review` back to `idle`.
+
+```sh
+python3 scripts/patch_chatgpt_avatar_completion_hold.py \
+  /Applications/ChatGPT.app/Contents/Resources/app.asar \
+  /tmp/chatgpt-app-raven-completion-hold.asar
+
+cp /Applications/ChatGPT.app/Contents/Resources/app.asar \
+  /Applications/ChatGPT.app/Contents/Resources/app.asar.raven-completion-hold.bak
+
+cp /tmp/chatgpt-app-raven-completion-hold.asar \
+  /Applications/ChatGPT.app/Contents/Resources/app.asar
+```
+
+Restart ChatGPT/Codex after applying the patch. App updates may replace `app.asar`, so the patch may need to be reapplied.
+
 ## Preview
 
 Idle:
@@ -77,7 +97,7 @@ Version `1.1` updates the package metadata to `Self-Improving Agent Harness.`, r
 Status mappings:
 
 - Task failed or network disconnected: fallen X face
-- Task complete: smile face with green music-note frames, merged with review feedback where the current renderer maps completion through review
+- Task complete: smile face with green music-note frames; the optional renderer patch holds this feedback when `running` or `review` returns to `idle`
 - Thinking/running task: > face with red pixel decoration
 - Approval needed: ? face
 - Review/output feedback: # face with yellow headphones
