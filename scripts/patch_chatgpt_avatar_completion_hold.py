@@ -12,6 +12,7 @@ from pathlib import Path
 
 TARGET_BASENAME_PREFIX = "webview/assets/avatar-overlay-page-"
 LEGACY_TARGET = "webview/assets/avatar-overlay-page--lFBkhmD.js"
+MASCOT_BUTTON_BASENAME_PREFIX = "webview/assets/avatar-mascot-button-"
 
 OLD_STATE_PREFIX = (
     "function jn({avatar:e,avatarMenuItems:t,debugWindowBorderVisible:n=!1,"
@@ -51,6 +52,8 @@ NEW_PROP = "style:l,transientState:Xe});return"
 OLD_PATCH_MARKER = "let Xe=u??(qe!=null&&k.mascotState===`idle`?qe:null)"
 PATCH_MARKER = "let Xe=qe!=null?qe:u"
 RUNNING_TO_IDLE_MARKER = "k.mascotState===`idle`&&(n===`running`||n===`review`)"
+OLD_LOOKFRAME_STATES = "re=x===`idle`||x===`running`||x===`waving`"
+NEW_LOOKFRAME_STATES = "re=x===`idle`"
 OLD_REVIEW_ONLY_SNIPPET = (
     "[qe,Je]=(0,X.useState)(null);"
     "(0,X.useEffect)(()=>{if(k.mascotState!==`review`)return;Je(`waving`);"
@@ -135,6 +138,26 @@ def find_target_file(header: dict, blob: bytes, data_start: int) -> tuple[str, d
     return matches[0]
 
 
+def find_mascot_button_file(header: dict, blob: bytes, data_start: int) -> tuple[str, dict]:
+    candidates = []
+    for path, entry in walk_files(header):
+        if path.startswith(MASCOT_BUTTON_BASENAME_PREFIX):
+            candidates.append((path, entry))
+    matches = []
+    for path, entry in candidates:
+        offset = int(entry.get("offset", 0))
+        size = int(entry.get("size", 0))
+        try:
+            text = blob[data_start + offset : data_start + offset + size].decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        if "function g(" in text and (OLD_LOOKFRAME_STATES in text or NEW_LOOKFRAME_STATES in text):
+            matches.append((path, entry))
+    if len(matches) != 1:
+        raise SystemExit(f"could not find unique avatar mascot button target; matches={ [path for path, _ in matches] }")
+    return matches[0]
+
+
 def patch_js(source: bytes) -> bytes:
     text = source.decode("utf-8")
     if RUNNING_TO_IDLE_MARKER in text and PATCH_MARKER in text:
@@ -169,6 +192,15 @@ def patch_js(source: bytes) -> bytes:
     return text.encode("utf-8")
 
 
+def patch_mascot_button_js(source: bytes) -> bytes:
+    text = source.decode("utf-8")
+    if NEW_LOOKFRAME_STATES in text and OLD_LOOKFRAME_STATES not in text:
+        return source
+    if text.count(OLD_LOOKFRAME_STATES) != 1:
+        raise SystemExit("could not find unique mascot lookFrame state gate")
+    return text.replace(OLD_LOOKFRAME_STATES, NEW_LOOKFRAME_STATES).encode("utf-8")
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: patch_chatgpt_avatar_completion_hold.py <input.asar> <output.asar>")
@@ -176,21 +208,29 @@ def main() -> None:
     output_path = Path(sys.argv[2])
     blob = input_path.read_bytes()
     header, old_header_size, old_data_start = read_header(blob)
-    target_path, target_entry = find_target_file(header, blob, old_data_start)
-    target_offset = int(target_entry["offset"])
-    target_size = int(target_entry["size"])
-    target_start = old_data_start + target_offset
-    target_end = target_start + target_size
-    patched_target = patch_js(blob[target_start:target_end])
-    target_entry["size"] = len(patched_target)
-    if "integrity" in target_entry:
-        block_size = int(target_entry["integrity"].get("blockSize", 4194304))
-        blocks = [
-            hashlib.sha256(patched_target[index : index + block_size]).hexdigest()
-            for index in range(0, len(patched_target), block_size)
-        ]
-        target_entry["integrity"]["hash"] = hashlib.sha256(patched_target).hexdigest()
-        target_entry["integrity"]["blocks"] = blocks
+    patch_targets = [
+        (*find_target_file(header, blob, old_data_start), patch_js),
+        (*find_mascot_button_file(header, blob, old_data_start), patch_mascot_button_js),
+    ]
+    patched_payloads: dict[str, bytes] = {}
+    old_sizes: dict[str, int] = {}
+    for target_path, target_entry, patcher in patch_targets:
+        target_offset = int(target_entry["offset"])
+        target_size = int(target_entry["size"])
+        old_sizes[target_path] = target_size
+        target_start = old_data_start + target_offset
+        target_end = target_start + target_size
+        patched_target = patcher(blob[target_start:target_end])
+        patched_payloads[target_path] = patched_target
+        target_entry["size"] = len(patched_target)
+        if "integrity" in target_entry:
+            block_size = int(target_entry["integrity"].get("blockSize", 4194304))
+            blocks = [
+                hashlib.sha256(patched_target[index : index + block_size]).hexdigest()
+                for index in range(0, len(patched_target), block_size)
+            ]
+            target_entry["integrity"]["hash"] = hashlib.sha256(patched_target).hexdigest()
+            target_entry["integrity"]["blocks"] = blocks
 
     old_files = sorted(
         [
@@ -205,9 +245,9 @@ def main() -> None:
     file_payloads: list[bytes] = []
     for path, entry in old_files:
         old_offset = int(entry["offset"])
-        old_size = target_size if path == target_path else int(entry["size"])
+        old_size = old_sizes.get(path, int(entry["size"]))
         original = blob[old_data_start + old_offset : old_data_start + old_offset + old_size]
-        payload = patched_target if path == target_path else original
+        payload = patched_payloads.get(path, original)
         entry["offset"] = str(current_offset)
         entry["size"] = len(payload)
         file_payloads.append(payload)
@@ -221,11 +261,11 @@ def main() -> None:
                 "ok": True,
                 "input": str(input_path),
                 "output": str(output_path),
-                "target": target_path,
+                "targets": sorted(patched_payloads),
                 "oldHeaderSize": old_header_size,
                 "newHeaderSize": new_header_size,
-                "oldTargetSize": target_size,
-                "newTargetSize": len(patched_target),
+                "oldTargetSizes": old_sizes,
+                "newTargetSizes": {path: len(payload) for path, payload in patched_payloads.items()},
                 "fileCount": len(old_files),
             },
             indent=2,

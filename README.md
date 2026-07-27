@@ -30,7 +30,7 @@ The Raven spritesheet includes a task-complete `waving` row, but some ChatGPT/Co
 
 For local desktop installs, `scripts/patch_chatgpt_avatar_completion_hold.py` can patch ChatGPT's `app.asar` so the renderer holds `waving` for about 3 seconds when the mascot state transitions from `running` or `review` back to `idle`.
 
-The patch gives completion feedback priority over Raven's movement/drag transient state, so autonomous walking does not hide the task-complete animation.
+The patch gives completion feedback priority over Raven's movement/drag transient state, so autonomous walking does not hide the task-complete animation. It also limits cursor/look-direction frames to `idle`, preventing look frames from visually masking `waving` feedback.
 
 ```sh
 python3 scripts/patch_chatgpt_avatar_completion_hold.py \
@@ -99,7 +99,7 @@ Version `1.1` updates the package metadata to `Self-Improving Agent Harness.`, r
 Status mappings:
 
 - Task failed or network disconnected: fallen X face
-- Task complete: smile face with green music-note frames; the optional renderer patch holds this feedback when `running` or `review` returns to `idle`
+- Task complete: smile face with green music-note frames; the optional renderer patch holds this feedback when `running` or `review` returns to `idle` and prevents look-frame masking
 - Thinking/running task: > face with red pixel decoration
 - Approval needed: ? face
 - Review/output feedback: # face with yellow headphones
