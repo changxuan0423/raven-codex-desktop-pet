@@ -2,6 +2,8 @@
 
 Raven is a black pixel-style Codex desktop pet package. It includes idle, blink, autonomous walking, hover eye-loop, task status, approval, and output states.
 
+Current version: `1.1`
+
 ![Raven idle](assets/idle.gif)
 
 ## Download
@@ -70,11 +72,13 @@ raven/
 
 Raven was made from a user-provided pixel PNG and packaged as a Codex v2 desktop pet.
 
+Version `1.1` updates the package metadata to `Self-Improving Agent Harness.`, refreshes the current Raven spritesheet, and keeps the latest status mapping/preview assets aligned with the local package.
+
 Status mappings:
 
 - Task failed or network disconnected: fallen X face
-- Task complete: smile face
-- Thinking/running task: # face
+- Task complete: smile face with green music-note frames, merged with review feedback where the current renderer maps completion through review
+- Thinking/running task: > face with red pixel decoration
 - Approval needed: ? face
-- Response output: > face
+- Review/output feedback: # face with yellow headphones
 - Hover/interaction: smooth eye-loop animation

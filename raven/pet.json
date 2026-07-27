@@ -1,7 +1,7 @@
 {
   "id": "raven",
   "displayName": "Raven",
-  "description": "A one-to-one black geometric moon-eyed desktop companion based on the user's PNG.",
+  "description": "Self-Improving Agent Harness.",
   "spriteVersionNumber": 2,
   "spritesheetPath": "spritesheet.webp"
 }
