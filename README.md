@@ -2,7 +2,7 @@
 
 Raven is a black pixel-style Codex desktop pet package. It includes idle, blink, autonomous walking, hover eye-loop, task status, approval, and output states.
 
-Current version: `1.1`
+Current version: `1.1.1`
 
 ![Raven idle](assets/idle.gif)
 
@@ -24,23 +24,23 @@ The installed files should look like this:
 ~/.codex/pets/raven/spritesheet.webp
 ```
 
-## Optional Completion Feedback Patch
+## Optional Renderer Patch
 
-The Raven spritesheet includes a task-complete `waving` row, but some ChatGPT/Codex desktop builds return the active conversation from `running` directly to `idle` without emitting a normal `review` notification. In that case the pet package alone cannot keep the completion animation visible.
+Raven's hover artwork contains eight pupil positions for a complete 360-degree eye loop. Some ChatGPT/Codex desktop builds play only five `jumping` frames for every pet, so the unpatched renderer cannot reach the last three positions.
 
-For local desktop installs, `scripts/patch_chatgpt_avatar_completion_hold.py` can patch ChatGPT's `app.asar` so the renderer holds `waving` for about 3 seconds when the mascot state transitions from `running` or `review` back to `idle`.
+For local desktop installs, `scripts/patch_custom_pet_review_hold.py` applies two custom-pet-only presentation fixes: it plays all eight hover frames and keeps a native `review` state visible for about 3.2 seconds after Codex returns to `idle`.
 
-The patch gives completion feedback priority over Raven's movement/drag transient state, so autonomous walking does not hide the task-complete animation. It also limits cursor/look-direction frames to `idle`, preventing look frames from visually masking `waving` feedback.
+The patch does not synthesize task-completion events or change Codex's semantic state resolver. Built-in pets keep their stock five-frame hover behavior, and `failed`, `waiting`, `running`, or another semantic state immediately cancels the visual hold.
 
 ```sh
-python3 scripts/patch_chatgpt_avatar_completion_hold.py \
+python3 scripts/patch_custom_pet_review_hold.py \
   /Applications/ChatGPT.app/Contents/Resources/app.asar \
-  /tmp/chatgpt-app-raven-completion-hold.asar
+  /tmp/chatgpt-app-raven-v1.1.1.asar
 
 cp /Applications/ChatGPT.app/Contents/Resources/app.asar \
   /Applications/ChatGPT.app/Contents/Resources/app.asar.raven-completion-hold.bak
 
-cp /tmp/chatgpt-app-raven-completion-hold.asar \
+cp /tmp/chatgpt-app-raven-v1.1.1.asar \
   /Applications/ChatGPT.app/Contents/Resources/app.asar
 ```
 
@@ -94,12 +94,12 @@ raven/
 
 Raven was made from a user-provided pixel PNG and packaged as a Codex v2 desktop pet.
 
-Version `1.1` updates the package metadata to `Self-Improving Agent Harness.`, refreshes the current Raven spritesheet, and keeps the latest status mapping/preview assets aligned with the local package.
+Version `1.1.1` keeps the approved Raven artwork unchanged and adds the custom-pet renderer fix required to play the complete eight-frame hover eye loop. It also narrows completion feedback to a presentation hold after Codex has natively selected `review`.
 
 Status mappings:
 
 - Task failed or network disconnected: fallen X face
-- Task complete: smile face with green music-note frames; the optional renderer patch holds this feedback when `running` or `review` returns to `idle` and prevents look-frame masking
+- Task complete: smile face with green music-note frames, alternating with review frames when Codex selects `review`
 - Thinking/running task: > face with red pixel decoration
 - Approval needed: ? face
 - Review/output feedback: # face with yellow headphones
